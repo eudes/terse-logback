@@ -19,8 +19,6 @@ public final class ConfigConstants {
 
     public static final String PROPERTIES_KEY = "properties";
 
-    public static final String LOGBACK_DEBUG_PROPERTY = "terse.logback.debug";
-
     public static final String LEVELS_KEY = "levels";
 
     public static final String LOGBACK = "logback";
@@ -36,4 +34,6 @@ public final class ConfigConstants {
     public static final String LOCAL_SCOPE = "local";
 
     public static final String PATH_ATTRIBUTE = "path";
+
+    public static final String DEBUG_ATTRIBUTE = "debug";
 }

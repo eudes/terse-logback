@@ -22,8 +22,10 @@ import com.typesafe.config.*;
 import org.xml.sax.Attributes;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.tersesystems.logback.typesafeconfig.ConfigConstants.*;
 import static java.util.function.Function.identity;
@@ -85,14 +87,15 @@ public class TypesafeConfigAction extends Action {
     public void begin(InterpretationContext ic, String name, Attributes attributes) throws ActionException {
         RuleStore ruleStore = ic.getJoranInterpreter().getRuleStore();
 
-        ruleStore.addRule(new ElementSelector("configuration/typesafeConfig/object"), new ContextObjectAction());
+        ruleStore.addRule(new ElementSelector("configuration/" + name + "/object"), new ContextObjectAction());
 
         String scope = attributes.getValue(SCOPE_ATTRIBUTE);
         if (scope != null) {
             setScope(scope);
         }
+        String debugAttr = attributes.getValue(DEBUG_ATTRIBUTE);
 
-        Config config = generateConfig(ic.getClass().getClassLoader());
+        Config config = generateConfig(ic.getClass().getClassLoader(), Boolean.valueOf(debugAttr));
         Context context = ic.getContext();
 
         configureConfig(config);
@@ -106,10 +109,21 @@ public class TypesafeConfigAction extends Action {
         }
     }
 
-    protected Map<String, String> levelsToMap(ConfigObject levels) {
-        return levels.keySet().stream().collect(
-            toMap(k -> levels.get(k).unwrapped().toString(), identity())
-        );
+    protected Map<String, String> levelsToMap(Config levelsConfig) {
+        Map<String, String> levelsMap = new HashMap<>();
+        Set<Map.Entry<String, ConfigValue>> levelsEntrySet = levelsConfig.entrySet();
+        for (Map.Entry<String, ConfigValue> entry : levelsEntrySet) {
+            String name = entry.getKey();
+            try {
+                String levelFromConfig = entry.getValue().unwrapped().toString();
+                levelsMap.put(name, levelFromConfig);
+            } catch (ConfigException.Missing e) {
+                addInfo("No custom setting found for " + name + " in config, ignoring");
+            } catch (Exception e) {
+                addError("Unexpected exception resolving " + name, e);
+            }
+        }
+        return levelsMap;
     }
 
     protected void configureConfig(Config config) {
@@ -123,7 +137,7 @@ public class TypesafeConfigAction extends Action {
     protected void configureLevels(Config config) {
         // Try to set up the levels as they're important...
         try {
-            Map<String, String> levelsMap = levelsToMap(config.getObject(LEVELS_KEY));
+            Map<String, String> levelsMap = levelsToMap(config.getConfig(LEVELS_KEY));
             context.putObject(LEVELS_KEY, levelsMap);
         } catch (ConfigException e) {
             addWarn("Cannot set levels in context!", e);
@@ -161,7 +175,7 @@ public class TypesafeConfigAction extends Action {
         }
     }
 
-    protected Config generateConfig(ClassLoader classLoader) {
+    protected Config generateConfig(ClassLoader classLoader, boolean debug) {
         // Look for logback.json, logback.conf, logback.properties
         Config systemProperties = ConfigFactory.systemProperties();
         String fileName = System.getProperty(CONFIG_FILE_PROPERTY);
@@ -182,7 +196,7 @@ public class TypesafeConfigAction extends Action {
                 .resolve();                  // Tell config that we want to use ${?ENV_VAR} type stuff.
 
         // Add a check to show the config value if nothing is working...
-        if (Boolean.getBoolean(LOGBACK_DEBUG_PROPERTY)) {
+        if (debug) {
             String configString = config.root().render(ConfigRenderOptions.defaults());
             addInfo(configString);
         }

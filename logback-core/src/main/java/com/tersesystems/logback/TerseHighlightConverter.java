@@ -27,7 +27,7 @@ import java.util.Map;
  */
 public class TerseHighlightConverter extends ForegroundCompositeConverterBase<ILoggingEvent> {
 
-    public static final String PROPERTIES_HIGHLIGHT = "properties.highlight";
+    public static final String HIGHLIGHT_CTX_KEY = "highlight";
 
     enum Color {
         BLACK(ANSIConstants.BLACK_FG),
@@ -47,9 +47,9 @@ public class TerseHighlightConverter extends ForegroundCompositeConverterBase<IL
 
     @Override
     protected String getForegroundColorCode(ILoggingEvent event) {
-        Map<String, String> config = (Map<String, String>) getContext().getObject(PROPERTIES_HIGHLIGHT);
+        Map<String, String> config = (Map<String, String>) getContext().getObject(HIGHLIGHT_CTX_KEY);
         if (config == null) {
-            addWarn("No map found in context with key " + PROPERTIES_HIGHLIGHT);
+            addWarn("No map found in context with key " + HIGHLIGHT_CTX_KEY);
             return Color.BLACK.code;
         }
 

@@ -49,7 +49,8 @@ public class SetLoggerLevelsAction extends Action {
 
     }
 
-    void doConfigure(InterpretationContext ic) {
+    @SuppressWarnings("unchecked")
+    protected void doConfigure(InterpretationContext ic) {
         LoggerContext ctx = (LoggerContext) ic.getContext();
         Map<String, String> levelsMap = (Map<String, String>) ctx.getObject(levelsKey);
         if (levelsMap == null) {
